@@ -295,6 +295,7 @@ e - Exit
                 task_list.append(task)
         return task_list
 
+    # This function saves all edited tasks in the view_mine function before writing them to the tasks.txt output file
     def save_tasks(task_list):
         """
         Saves the given list of tasks to the tasks.txt file.
@@ -307,7 +308,7 @@ e - Exit
         """
         with open('tasks.txt', 'w') as f:
             for task in task_list:
-                line = ';'.join([task['username'], task['title'], task['description'], str(task['due_date']), str(task['assigned_date']), task['completed']]) + '\n'
+                line = ';'.join([task['username'], task['title'], task['description'], str(task['due_date']), str(task['assigned_date']), str(task['completed'])]) + '\n'
                 f.write(line)
 
     # Creating a function called view_mine()
