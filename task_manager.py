@@ -261,18 +261,56 @@ e - Exit
 
 
     
-    # '''Edit a task.'''
-    def edit_task(task):
-        print("Enter the new details for the task.")
-        task['title'] = input("Title: ")
-        task['description'] = input("Description: ")
-        task['due_date'] = input("Due date (YYYY-MM-DD): ")
+    # # '''Edit a task.'''
+    # def edit_task(task):
+    #     print("Enter the new details for the task.")
+    #     task['title'] = input("Title: ")
+    #     task['description'] = input("Description: ")
+    #     task['due_date'] = input("Due date (YYYY-MM-DD): ")
        
         # Creating a function called view all (vm) tasks 
         # to view all the tasks that have been assigned to them.
     
     from datetime import datetime
 
+    def load_tasks():
+        """
+        Loads tasks from tasks.txt file into a list of dictionaries.
+
+        Returns:
+            A list of dictionaries representing tasks.
+        """
+        task_list = []
+        with open('tasks.txt', 'r') as f:
+            for line in f:
+                fields = line.strip().split(';')
+                task = {
+                    'username': fields[0],
+                    'title': fields[1],
+                    'description': fields[2],
+                    'due_date': datetime.strptime(fields[3], '%Y-%m-%d').date(),
+                    'assigned_date': datetime.strptime(fields[4], '%Y-%m-%d').date(),
+                    'completed': fields[5]
+                }
+                task_list.append(task)
+        return task_list
+
+    def save_tasks(task_list):
+        """
+        Saves the given list of tasks to the tasks.txt file.
+
+        Args:
+            task_list: A list of dictionaries representing tasks.
+
+        Returns:
+            None.
+        """
+        with open('tasks.txt', 'w') as f:
+            for task in task_list:
+                line = ';'.join([task['username'], task['title'], task['description'], str(task['due_date']), str(task['assigned_date']), task['completed']]) + '\n'
+                f.write(line)
+
+    # Creating a function called view_mine()
     def view_mine(task_list, curr_user):
         """
         Prints all tasks in the given list that are assigned to the given user in a table format.
@@ -289,62 +327,75 @@ e - Exit
         for i, task in enumerate(task_list):
             if task['username'] == curr_user:
                 task_id = i + 1
-                completed_str = "Yes" if task['completed'] else "No"
-                print(f"{task_id:<8} | {task['username']:<8} | {task['title']:<10} | {task['description']:<20} | {task['due_date']:<19} | {task['assigned_date']:<19} | {completed_str:<9}")
+                if task['completed'] == "Yes":
+                    completed_str = "Yes"
+                else:
+                    completed_str = "No"
+                print(f"{task_id:<8} | {task['username']:<8} | {task['title']:<10} | {task['description']:<20} | {task['due_date'].strftime('%Y-%m-%d'):<19} | {task['assigned_date'].strftime('%Y-%m-%d'):<19} | {completed_str:<9}")
 
         while True:
             task_id = input("Enter Task ID to mark as complete or edit (Enter 'q' to quit): ")
             if task_id.lower() == "q":
                 break
-            elif not task_id.isdigit() or int(task_id) < 1 or int(task_id) > len(task_list):
-                print("Invalid Task ID. Please try again.")
-            else:
+            try:
                 task_index = int(task_id) - 1
-                task = task_list[task_index]
-                if task['completed']:
-                    print("This task has already been completed and cannot be edited.")
-                    break
+                if task_index < 0 or task_index >= len(task_list):
+                    raise ValueError("Invalid Task ID. Please try again.")
+            except (TypeError, ValueError):
+                print("Invalid Task ID. Please try again")
+                continue
 
+            task = task_list[task_index]
+
+            if task['completed'] == "Yes":
+                print("This task has already been completed and cannot be edited.")
+                continue
+
+            while True:
                 action = input("Enter 'c' to mark as complete or 'e' to edit (Enter 'q' to quit): ")
+                if action.lower() not in ["c", "e", "q"]:
+                    print("Invalid action. Please try again.")
+                    continue
+                break
 
-                if action.lower() == "c":
-                    task['completed'] = "Yes"
-                    with open("tasks.txt", "w") as f:
-                        for task in task_list:
-                            f.write(';'.join([task['username'], task['title'], task['description'], str(task['due_date']), str(task['assigned_date']), task['completed']]) + '\n')
-                    print("Task marked as complete.")
-                    # Re-read tasks from file into task_list
-                    with open('tasks.txt', 'r') as f:
-                        task_list = []
-                        for line in f:
-                            fields = line.strip().split(';')
-                            task_list.append({
-                                'username': fields[0],
-                                'title': fields[1],
-                                'description': fields[2],
-                                'due_date': fields[3],
-                                'assigned_date': fields[4],
-                                'completed': fields[5]
-                            })
-                    break
-                elif action.lower() == "e":
-                    print("Fields that can be edited: 'username', 'title', 'description', 'due_date'")
+            if action.lower() == "q":
+                break
+
+            if action.lower() == "c":
+                task['completed'] = "Yes"
+                save_tasks(task_list)
+                print("Task marked as complete.")
+
+            if action.lower() == "e":
+                print("Fields that can be edited: 'username', 'title', 'description', 'due_date'")
+                while True:
                     field_to_edit = input("Enter field to edit (Enter 'q' to quit): ")
                     if field_to_edit.lower() == "q":
                         break
                     elif field_to_edit.lower() not in ["username", "title", "description", "due_date"]:
                         print("Invalid field. Please try again.")
                         continue
+                    break
 
-                    new_value = input(f"Enter new value for '{field_to_edit}' (leave blank to keep current value): ")
-                    if new_value:
-                        task[field_to_edit] = new_value
+                if field_to_edit.lower() == "q":
+                    break
 
-                        with open("tasks.txt", "w") as f:
-                            for task in task_list:
-                                f.write(';'.join([task['username'], task['title'], task['description'], task['due_date'], task['assigned_date'], task['completed']]) + '\n')
+                new_value = input(f"Enter new value for '{field_to_edit}' (leave blank to keep current value): ")
+                if new_value:
+                    if field_to_edit == "due_date":
+                        try:
+                            new_value = datetime.strptime(new_value, '%Y-%m-%d').date()
+                        except (TypeError, ValueError):
+                            print("Invalid date format. Due date not updated.")
+                            return
+                    task[field_to_edit] = new_value
 
-                        print("Task updated.")
+                    # Ensure 'completed' field is always a string
+                    task['completed'] = str(task['completed'])
+
+                    save_tasks(task_list)
+                    print("Task updated.")
+
                     # Re-read tasks from file into task_list
                     with open('tasks.txt', 'r') as f:
                         task_list = []
@@ -369,7 +420,7 @@ e - Exit
     if menu == "vm":
         view_mine(task_list, curr_user)
 
-
+    
     # function to for gr- generate reports
     def generate_reports(task_list, user_list):
         # Get the total number of tasks
